@@ -6,8 +6,17 @@ import { checkFile, checkURL, checkText, getCorpus, highlightText, highlightFile
 import SimilarityChart from "../components/SimilarityChart";
 import ScoreRing from "../components/ScoreRing";
 import HighlightViewer from "../components/HighlightViewer";
+import ResultDisplayOptions from "../components/ResultDisplayOptions";
+import ProfessionalLayout, { 
+  ProfessionalHeader, 
+  ProfessionalSection, 
+  ProfessionalCard, 
+  ProfessionalButton, 
+  ProfessionalGrid,
+  ProfessionalBadge 
+} from "../components/ProfessionalLayout";
 import { exportReportAsPDF } from "../utils/exportPDF";
-import { FileText, Link2, AlignLeft, Zap, Brain, Upload, AlertTriangle, CheckCircle, Info, Download, ScanText, SlidersHorizontal } from "lucide-react";
+import { FileText, Link2, AlignLeft, Zap, Brain, Upload, AlertTriangle, CheckCircle, Info, Download, ScanText, SlidersHorizontal, Eye, Settings } from "lucide-react";
 
 const TABS = [
   { id: "File", icon: FileText, label: "File Upload" },
@@ -30,6 +39,9 @@ export default function Check() {
   const [exportLoading, setExportLoading] = useState(false);
   const [corpus, setCorpus] = useState([]);
   const [extractedText, setExtractedText] = useState("");
+  const [inlineHighlight, setInlineHighlight] = useState(null);
+  const [resultDisplayMode, setResultDisplayMode] = useState("summary");
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {
@@ -38,15 +50,11 @@ export default function Check() {
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [],
     },
     multiple: false,
-    onDrop: (files) => {
-      setFile(files[0]);
-      toast.success(`${files[0].name} ready to check`);
-    },
+    onDrop: (files) => { setFile(files[0]); toast.success(`${files[0].name} ready`); },
   });
 
   const handleCheck = async () => {
-    setResult(null);
-    setLoading(true);
+    setResult(null); setInlineHighlight(null); setLoading(true);
     const toastId = toast.loading("Analyzing document...");
     try {
       let res;
@@ -59,6 +67,17 @@ export default function Check() {
       const corpusRes = await getCorpus();
       setCorpus(corpusRes.data);
       toast.success("Analysis complete!", { id: toastId });
+      if (res.data.matches?.length > 0) {
+        const topDoc = corpusRes.data.find((c) => c.filename === res.data.matches[0].filename);
+        if (topDoc) {
+          try {
+            const hlRes = tab === "File" && file
+              ? await highlightFile(file, topDoc.id, 0.4)
+              : await highlightText(res.data.extracted_text || (tab === "Text" ? text : url), topDoc.id, 0.4);
+            setInlineHighlight(hlRes.data);
+          } catch (_) {}
+        }
+      }
     } catch (e) {
       toast.error(e.response?.data?.detail || "Something went wrong.", { id: toastId });
     }
@@ -69,18 +88,10 @@ export default function Check() {
     setHighlightLoading(true);
     const toastId = toast.loading("Loading sentence analysis...");
     try {
-      let res;
-      if (tab === "File" && file) {
-        res = await highlightFile(file, corpusId, threshold / 100);
-      } else {
-        const sourceText = tab === "Text" ? text : extractedText;
-        if (!sourceText) {
-          toast.error("No extracted text available. Run a check first.", { id: toastId });
-          setHighlightLoading(false);
-          return;
-        }
-        res = await highlightText(sourceText, corpusId, threshold / 100);
-      }
+      const sourceText = tab === "Text" ? text : extractedText;
+      const res = tab === "File" && file
+        ? await highlightFile(file, corpusId, threshold / 100)
+        : await highlightText(sourceText, corpusId, threshold / 100);
       setHighlightData(res.data);
       toast.success("Analysis ready", { id: toastId });
     } catch (e) {
@@ -103,297 +114,492 @@ export default function Check() {
   };
 
   const getRiskIcon = (score) => {
-    if (score >= 70) return <AlertTriangle size={16} className="text-red-400" />;
-    if (score >= 40) return <Info size={16} className="text-orange-400" />;
-    return <CheckCircle size={16} className="text-green-400" />;
+    if (score >= 70) return <AlertTriangle size={14} className="text-red-400 shrink-0" />;
+    if (score >= 40) return <Info size={14} className="text-orange-400 shrink-0" />;
+    return <CheckCircle size={14} className="text-green-400 shrink-0" />;
   };
 
   const isAboveThreshold = result && result.top_similarity >= threshold;
 
   return (
-    <div className="max-w-5xl mx-auto py-10 px-4">
+    <ProfessionalLayout fullWidth>
       <Toaster position="top-right" toastOptions={{
         style: { background: "#1a1f35", color: "#fff", border: "1px solid rgba(255,255,255,0.1)" }
       }} />
 
-      {/* Highlight Viewer Modal */}
       <AnimatePresence>
-        {highlightData && (
-          <HighlightViewer data={highlightData} onClose={() => setHighlightData(null)} />
-        )}
+        {highlightData && <HighlightViewer data={highlightData} onClose={() => setHighlightData(null)} />}
       </AnimatePresence>
 
-      {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
-        <h1 className="text-4xl font-bold text-white mb-2">
-          Plagiarism <span className="gradient-text">Detector</span>
-        </h1>
-        <p className="text-gray-500">Upload a file, paste a URL, or enter text to check for plagiarism against your corpus.</p>
-      </motion.div>
+      {/* Professional Header - Left title, Right controls */}
+      <ProfessionalHeader
+        title={<>Plagiarism <span className="gradient-text">Detector</span></>}
+        subtitle="Check documents against your corpus using advanced NLP algorithms"
+        rightContent={
+          <ProfessionalSection spacing="tight">
+            <ProfessionalButton
+              variant="secondary"
+              size="small"
+              onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+              className={showAdvancedOptions ? "bg-purple-500/15 border-purple-500/30 text-purple-400" : ""}
+            >
+              <Settings size={14} className="mr-2" />
+              Advanced
+            </ProfessionalButton>
+            <ProfessionalButton
+              variant="secondary"
+              size="small"
+              onClick={() => setShowThresholdSlider(!showThresholdSlider)}
+              className={showThresholdSlider ? "bg-amber-500/15 border-amber-500/30 text-amber-400" : ""}
+            >
+              <SlidersHorizontal size={14} className="mr-2" />
+              Threshold: {threshold}%
+            </ProfessionalButton>
+          </ProfessionalSection>
+        }
+      />
 
-      {/* Threshold Alert Banner */}
+      {/* Threshold Control Panel - Full width, collapsible */}
       <AnimatePresence>
-        {isAboveThreshold && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="mb-6 flex items-center gap-4 px-5 py-4 rounded-2xl border border-red-500/30 bg-red-500/10"
+        {showThresholdSlider && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }} 
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }} 
+            className="overflow-hidden mb-6"
           >
-            <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center shrink-0">
-              <AlertTriangle size={20} className="text-red-400" />
-            </div>
-            <div className="flex-1">
-              <p className="text-red-400 font-semibold text-sm">Threshold Exceeded</p>
-              <p className="text-red-300/70 text-xs mt-0.5">
-                Similarity score of <span className="font-bold text-red-300">{result.top_similarity}%</span> exceeds your set threshold of <span className="font-bold text-red-300">{threshold}%</span>. This document is flagged for review.
-              </p>
-            </div>
-            <span className="text-red-400 font-bold text-2xl shrink-0">{result.top_similarity}%</span>
+            <ProfessionalCard className="flex items-center gap-6">
+              <p className="text-gray-400 text-sm font-medium shrink-0">Alert Threshold</p>
+              <input 
+                type="range" 
+                min="10" 
+                max="95" 
+                value={threshold}
+                onChange={(e) => setThreshold(Number(e.target.value))}
+                className="flex-1 accent-amber-500 cursor-pointer" 
+              />
+              <ProfessionalBadge 
+                variant={threshold >= 70 ? "error" : threshold >= 40 ? "warning" : "success"}
+                size="normal"
+              >
+                {threshold}%
+              </ProfessionalBadge>
+              <ProfessionalSection alignment="right" spacing="tight">
+                <span className="text-xs text-gray-600">10% sensitive</span>
+                <span className="text-xs text-gray-600">95% strict</span>
+              </ProfessionalSection>
+            </ProfessionalCard>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Left Panel */}
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="lg:col-span-3 space-y-5">
-
-          {/* Tabs */}
-          <div className="glass rounded-2xl p-1.5 flex gap-1">
-            {TABS.map(({ id, icon: Icon, label }) => (
-              <button key={id} onClick={() => setTab(id)}
-                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-                  tab === id ? "bg-indigo-600 text-white shadow-lg" : "text-gray-400 hover:text-white"
-                }`}>
-                <Icon size={14} />
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {/* Input Area */}
-          <AnimatePresence mode="wait">
-            <motion.div key={tab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
-              {tab === "File" && (
-                <div {...getRootProps()} className={`relative border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all duration-300 ${
-                  isDragActive ? "border-indigo-500 bg-indigo-500/10 scale-[1.02]" : "border-white/10 hover:border-indigo-500/50 hover:bg-white/2"
-                }`}>
-                  <input {...getInputProps()} />
-                  {isDragActive && <div className="absolute inset-0 rounded-2xl bg-indigo-500/5 shimmer" />}
-                  {file ? (
-                    <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }}>
-                      <div className="w-14 h-14 rounded-2xl bg-green-500/20 flex items-center justify-center mx-auto mb-3">
-                        <FileText size={24} className="text-green-400" />
-                      </div>
-                      <p className="text-green-400 font-semibold">{file.name}</p>
-                      <p className="text-gray-500 text-sm mt-1">{(file.size / 1024).toFixed(1)} KB · Click to change</p>
-                    </motion.div>
-                  ) : (
-                    <>
-                      <div className="w-14 h-14 rounded-2xl bg-indigo-500/20 flex items-center justify-center mx-auto mb-4">
-                        <Upload size={24} className="text-indigo-400" />
-                      </div>
-                      <p className="text-white font-medium mb-1">Drop your file here</p>
-                      <p className="text-gray-500 text-sm">PDF, DOCX, TXT supported</p>
-                    </>
-                  )}
+      {/* Advanced Options Panel */}
+      <AnimatePresence>
+        {showAdvancedOptions && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }} 
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }} 
+            className="overflow-hidden mb-6"
+          >
+            <ProfessionalCard>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="text-white font-semibold text-sm mb-3">Result Display Options</h4>
+                  <div className="flex items-center gap-2 bg-white/5 rounded-xl p-1">
+                    {[
+                      { id: "summary", label: "Summary", icon: Eye },
+                      { id: "detailed", label: "Detailed", icon: FileText },
+                      { id: "visual", label: "Visual", icon: ScanText }
+                    ].map(({ id, label, icon: Icon }) => (
+                      <button
+                        key={id}
+                        onClick={() => setResultDisplayMode(id)}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                          resultDisplayMode === id
+                            ? "bg-indigo-600 text-white"
+                            : "text-gray-400 hover:text-white hover:bg-white/10"
+                        }`}
+                      >
+                        <Icon size={12} />
+                        {label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+                <div>
+                  <h4 className="text-white font-semibold text-sm mb-3">Export Options</h4>
+                  <ProfessionalSection spacing="tight">
+                    <ProfessionalButton variant="secondary" size="small">
+                      <Download size={12} className="mr-2" />
+                      Quick PDF
+                    </ProfessionalButton>
+                    <ProfessionalButton variant="secondary" size="small">
+                      <Download size={12} className="mr-2" />
+                      Full Report
+                    </ProfessionalButton>
+                  </ProfessionalSection>
+                </div>
+              </div>
+            </ProfessionalCard>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Threshold Alert Banner */}
+      <AnimatePresence>
+        {isAboveThreshold && (
+          <motion.div 
+            initial={{ opacity: 0, y: -8 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            exit={{ opacity: 0, y: -8 }}
+            className="mb-6"
+          >
+            <ProfessionalCard className="border border-red-500/30 bg-red-500/8">
+              <ProfessionalSection alignment="between">
+                <ProfessionalSection spacing="tight">
+                  <AlertTriangle size={18} className="text-red-400 shrink-0" />
+                  <div>
+                    <p className="text-red-400 font-semibold text-sm">Threshold Exceeded</p>
+                    <p className="text-red-300/60 text-xs mt-0.5">
+                      Score <span className="font-bold text-red-300">{result.top_similarity}%</span> exceeds threshold of <span className="font-bold text-red-300">{threshold}%</span>
+                    </p>
+                  </div>
+                </ProfessionalSection>
+                <span className="text-red-400 font-bold text-xl">{result.top_similarity}%</span>
+              </ProfessionalSection>
+            </ProfessionalCard>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Professional Grid Layout - 3 columns input, 2 columns results */}
+      <ProfessionalGrid cols="auto" gap="normal">
+        {/* Left Panel - Input Section (3 columns) */}
+        <motion.div 
+          initial={{ opacity: 0, x: -16 }} 
+          animate={{ opacity: 1, x: 0 }}
+          className="lg:col-span-3 space-y-4"
+        >
+          {/* Tab Navigation - Professional alignment */}
+          <ProfessionalCard padding="tight">
+            <ProfessionalSection spacing="tight">
+              {TABS.map(({ id, icon: Icon, label }) => (
+                <ProfessionalButton
+                  key={id}
+                  variant={tab === id ? "primary" : "secondary"}
+                  size="small"
+                  onClick={() => setTab(id)}
+                  className={tab === id ? "" : "bg-white/4 hover:bg-white/8"}
+                >
+                  <Icon size={13} className="mr-2" />
+                  {label}
+                </ProfessionalButton>
+              ))}
+            </ProfessionalSection>
+          </ProfessionalCard>
+
+          {/* Input Content Area */}
+          <AnimatePresence mode="wait">
+            <motion.div 
+              key={tab} 
+              initial={{ opacity: 0, y: 8 }} 
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }} 
+              transition={{ duration: 0.15 }}
+            >
+              {tab === "File" && (
+                <ProfessionalCard 
+                  className={`border-2 border-dashed cursor-pointer transition-all ${
+                    isDragActive ? "border-indigo-500 bg-indigo-500/8" : "border-white/8 hover:border-indigo-500/40"
+                  }`}
+                  {...getRootProps()}
+                >
+                  <input {...getInputProps()} />
+                  <ProfessionalSection spacing="tight">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                      file ? "bg-green-500/15" : "bg-indigo-500/15"
+                    }`}>
+                      {file ? 
+                        <FileText size={22} className="text-green-400" /> : 
+                        <Upload size={22} className="text-indigo-400" />
+                      }
+                    </div>
+                    <div>
+                      <p className={`font-medium ${file ? "text-green-400" : "text-white"}`}>
+                        {file ? file.name : "Drop your file here"}
+                      </p>
+                      <p className="text-gray-500 text-sm mt-0.5">
+                        {file ? `${(file.size / 1024).toFixed(1)} KB · Click to change` : "PDF, DOCX, TXT supported · Click to browse"}
+                      </p>
+                    </div>
+                  </ProfessionalSection>
+                </ProfessionalCard>
               )}
 
               {tab === "URL" && (
-                <div className="glass rounded-2xl p-5">
-                  <label className="text-gray-400 text-sm font-medium mb-2 block">Website URL</label>
-                  <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus-within:border-indigo-500/50 transition-colors">
-                    <Link2 size={16} className="text-gray-500 shrink-0" />
-                    <input value={url} onChange={(e) => setUrl(e.target.value)}
+                <ProfessionalCard>
+                  <label className="block text-gray-400 text-xs font-semibold uppercase tracking-wider mb-3">
+                    Website URL
+                  </label>
+                  <ProfessionalSection 
+                    spacing="tight" 
+                    className="border border-white/8 rounded-xl px-4 py-3 focus-within:border-indigo-500/50 transition-colors"
+                    style={{ background: "rgba(255,255,255,0.04)" }}
+                  >
+                    <Link2 size={15} className="text-gray-500 shrink-0" />
+                    <input 
+                      value={url} 
+                      onChange={(e) => setUrl(e.target.value)}
                       placeholder="https://example.com/article"
-                      className="flex-1 bg-transparent text-white placeholder-gray-600 focus:outline-none text-sm" />
-                  </div>
-                </div>
+                      className="flex-1 bg-transparent text-white placeholder-gray-600 focus:outline-none text-sm" 
+                    />
+                  </ProfessionalSection>
+                </ProfessionalCard>
               )}
 
               {tab === "Text" && (
-                <div className="glass rounded-2xl p-5">
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-gray-400 text-sm font-medium">Paste Text</label>
-                    <span className="text-gray-600 text-xs">{text.length} chars</span>
-                  </div>
-                  <textarea value={text} onChange={(e) => setText(e.target.value)} rows={7}
-                    placeholder="Paste the text you want to check for plagiarism..."
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/50 resize-none text-sm transition-colors" />
-                </div>
+                <ProfessionalCard>
+                  <ProfessionalSection alignment="between" className="mb-3">
+                    <label className="text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                      Paste Text
+                    </label>
+                    <span className="text-gray-600 text-xs">{text.length} characters</span>
+                  </ProfessionalSection>
+                  <textarea 
+                    value={text} 
+                    onChange={(e) => setText(e.target.value)} 
+                    rows={7}
+                    placeholder="Paste the text you want to check..."
+                    className="w-full border border-white/8 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/40 resize-none text-sm transition-colors"
+                    style={{ background: "rgba(255,255,255,0.04)", color: "#fff" }}
+                  />
+                </ProfessionalCard>
               )}
             </motion.div>
           </AnimatePresence>
 
-          {/* Mode + Threshold */}
-          <div className="glass rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-gray-400 text-sm font-medium">Detection Mode</p>
-              <button onClick={() => setShowThresholdSlider(!showThresholdSlider)}
-                className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors ${showThresholdSlider ? "bg-amber-500/20 text-amber-400" : "glass text-gray-400 hover:text-white"}`}>
-                <SlidersHorizontal size={12} />
-                Threshold: {threshold}%
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
+          {/* Detection Mode Selection */}
+          <ProfessionalCard>
+            <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-4">
+              Detection Mode
+            </p>
+            <ProfessionalGrid cols="2" gap="tight">
               {[
                 { id: "tfidf", icon: Zap, label: "TF-IDF", desc: "Fast · Exact matches" },
                 { id: "bert", icon: Brain, label: "BERT", desc: "Deep · Catches paraphrasing" },
               ].map(({ id, icon: Icon, label, desc }) => (
-                <button key={id} onClick={() => setMode(id)}
-                  className={`flex items-center gap-3 p-4 rounded-xl border transition-all duration-200 text-left ${
-                    mode === id ? "border-indigo-500/50 bg-indigo-500/10" : "border-white/5 hover:border-white/15 bg-white/2"
+                <button 
+                  key={id} 
+                  onClick={() => setMode(id)}
+                  className={`flex items-center gap-3 p-4 rounded-xl border text-left transition-all ${
+                    mode === id ? "border-indigo-500/50 bg-indigo-500/10" : "border-white/5 bg-white/2 hover:border-white/12"
+                  }`}
+                >
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                    mode === id ? "bg-indigo-500/25" : "bg-white/5"
                   }`}>
-                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${mode === id ? "bg-indigo-500/30" : "bg-white/5"}`}>
                     <Icon size={16} className={mode === id ? "text-indigo-400" : "text-gray-500"} />
                   </div>
                   <div>
-                    <p className={`text-sm font-semibold ${mode === id ? "text-white" : "text-gray-400"}`}>{label}</p>
-                    <p className="text-xs text-gray-600">{desc}</p>
+                    <p className={`text-sm font-semibold ${mode === id ? "text-white" : "text-gray-400"}`}>
+                      {label}
+                    </p>
+                    <p className="text-xs text-gray-600 mt-0.5">{desc}</p>
                   </div>
                 </button>
               ))}
-            </div>
-
-            {/* Threshold Slider */}
-            <AnimatePresence>
-              {showThresholdSlider && (
-                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="mt-4 overflow-hidden">
-                  <div className="pt-3 border-t border-white/5">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-gray-400 text-xs">Alert Threshold</p>
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-lg ${threshold >= 70 ? "bg-red-500/20 text-red-400" : threshold >= 40 ? "bg-orange-500/20 text-orange-400" : "bg-green-500/20 text-green-400"}`}>
-                        {threshold}%
-                      </span>
-                    </div>
-                    <input type="range" min="10" max="95" value={threshold} onChange={(e) => setThreshold(Number(e.target.value))}
-                      className="w-full accent-amber-500 cursor-pointer" />
-                    <div className="flex justify-between text-xs text-gray-600 mt-1">
-                      <span>10% — Very sensitive</span>
-                      <span>95% — Very strict</span>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+            </ProfessionalGrid>
+          </ProfessionalCard>
 
           {/* Check Button */}
-          <motion.button onClick={handleCheck} disabled={loading}
-            whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
-            className="w-full py-4 rounded-2xl font-semibold text-white text-sm transition-all duration-200"
-            style={{ background: loading ? "#374151" : "linear-gradient(135deg, #6366f1, #8b5cf6)" }}>
+          <ProfessionalButton
+            variant="primary"
+            size="large"
+            onClick={handleCheck}
+            disabled={loading}
+            className="w-full"
+          >
             {loading ? (
-              <span className="flex items-center justify-center gap-2">
-                <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                  className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
+              <>
+                <motion.div 
+                  animate={{ rotate: 360 }} 
+                  transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                  className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full mr-2" 
+                />
                 Analyzing...
-              </span>
+              </>
             ) : (
-              <span className="flex items-center justify-center gap-2">
-                <Zap size={16} />
+              <>
+                <Zap size={15} className="mr-2" /> 
                 Check for Plagiarism
-              </span>
+              </>
             )}
-          </motion.button>
+          </ProfessionalButton>
         </motion.div>
 
-        {/* Right Panel */}
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="lg:col-span-2">
-          <AnimatePresence mode="wait">
-            {!result && !loading && (
-              <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                className="glass rounded-2xl p-8 text-center h-full flex flex-col items-center justify-center min-h-64">
-                <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mx-auto mb-4">
-                  <SearchIcon size={24} className="text-gray-600" />
-                </div>
-                <p className="text-gray-500 text-sm">Results will appear here after analysis</p>
+        {/* Right Panel - Results Section (2 columns) */}
+        <motion.div 
+          initial={{ opacity: 0, x: 16 }} 
+          animate={{ opacity: 1, x: 0 }}
+          className="lg:col-span-2 space-y-4"
+        >
+          {!result ? (
+            <ProfessionalCard className="flex flex-col items-center justify-center min-h-72 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-white/4 border border-white/8 flex items-center justify-center mb-4">
+                <SearchIcon size={22} className="text-gray-600" />
+              </div>
+              <p className="text-gray-400 font-medium text-sm">No results yet</p>
+              <p className="text-gray-600 text-xs mt-1">Submit a document to see analysis</p>
+            </ProfessionalCard>
+          ) : (
+            <AnimatePresence>
+              <motion.div 
+                key="result" 
+                initial={{ opacity: 0, y: 10 }} 
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-4"
+              >
+                {/* Result Display Options Component */}
+                <ResultDisplayOptions 
+                  result={result}
+                  currentMode={resultDisplayMode}
+                  onModeChange={setResultDisplayMode}
+                />
+
+                {/* Export Actions */}
+                <ProfessionalCard>
+                  <ProfessionalSection alignment="between">
+                    <div>
+                      <p className="text-white font-semibold text-sm">Export Report</p>
+                      <p className="text-gray-500 text-xs">Download analysis in different formats</p>
+                    </div>
+                    <ProfessionalSection spacing="tight">
+                      <ProfessionalButton
+                        variant="secondary"
+                        size="small"
+                        onClick={handleExportPDF}
+                        disabled={exportLoading}
+                      >
+                        <Download size={12} className="mr-2" />
+                        {exportLoading ? "Generating..." : "PDF Report"}
+                      </ProfessionalButton>
+                    </ProfessionalSection>
+                  </ProfessionalSection>
+                </ProfessionalCard>
               </motion.div>
-            )}
-
-            {result && (
-              <motion.div key="result" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-4">
-                {/* Score */}
-                <div className="glass rounded-2xl p-5">
-                  <ScoreRing score={result.top_similarity} />
-                  <div className="mt-4 space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Document</span>
-                      <span className="text-white truncate max-w-32 text-right">{result.document}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Top Match</span>
-                      <span className="text-indigo-400 truncate max-w-32 text-right">{result.top_match || "None"}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Mode</span>
-                      <span className="text-purple-400 uppercase">{result.mode}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Threshold</span>
-                      <span className={`font-semibold ${isAboveThreshold ? "text-red-400" : "text-green-400"}`}>{threshold}% {isAboveThreshold ? "⚠ Exceeded" : "✓ Safe"}</span>
-                    </div>
-                  </div>
-
-                  {/* Export PDF Button */}
-                  <motion.button onClick={handleExportPDF} disabled={exportLoading}
-                    whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
-                    className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium glass border border-white/10 text-gray-300 hover:text-white hover:border-white/20 transition-all">
-                    <Download size={14} />
-                    {exportLoading ? "Generating..." : "Export PDF Report"}
-                  </motion.button>
-                </div>
-
-                {/* Match List */}
-                <div className="glass rounded-2xl overflow-hidden">
-                  <div className="px-4 py-3 border-b border-white/5">
-                    <p className="text-white text-sm font-semibold">Matched Sources</p>
-                  </div>
-                  <div className="divide-y divide-white/5 max-h-64 overflow-y-auto">
-                    {result.matches.map((m, i) => {
-                      const corpusDoc = corpus.find((c) => c.filename === m.filename);
-                      return (
-                        <motion.div key={i} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
-                          className="flex items-center justify-between px-4 py-3 hover:bg-white/3 transition-colors group">
-                          <div className="flex items-center gap-2 min-w-0">
-                            {getRiskIcon(m.similarity)}
-                            <span className="text-gray-300 text-xs truncate">{m.filename}</span>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0 ml-2">
-                            <span className={`text-xs font-bold ${m.similarity >= 70 ? "text-red-400" : m.similarity >= 40 ? "text-orange-400" : "text-green-400"}`}>
-                              {m.similarity}%
-                            </span>
-                            {corpusDoc && (
-                              <motion.button
-                                onClick={() => handleHighlight(corpusDoc.id)}
-                                disabled={highlightLoading}
-                                whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                                title="View sentence-level matches"
-                                className="opacity-0 group-hover:opacity-100 w-6 h-6 rounded-md bg-indigo-500/20 flex items-center justify-center text-indigo-400 hover:bg-indigo-500/30 transition-all">
-                                <ScanText size={12} />
-                              </motion.button>
-                            )}
-                          </div>
-                        </motion.div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+            </AnimatePresence>
+          )}
         </motion.div>
-      </div>
+      </ProfessionalGrid>
 
-      {/* Chart */}
+      {/* Professional Chart Section - Full width with left-aligned title */}
       {result && (
-        <div id="similarity-chart">
+        <div id="similarity-chart" className="mt-8">
           <SimilarityChart matches={result.matches} />
         </div>
       )}
-    </div>
+
+      {/* Professional Inline Sentence Preview - Full width */}
+      <AnimatePresence>
+        {inlineHighlight && inlineHighlight.matches.length > 0 && (
+          <motion.div 
+            initial={{ opacity: 0, y: 16 }} 
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }} 
+            className="mt-8"
+          >
+            <ProfessionalCard className="overflow-hidden p-0">
+              {/* Header with professional alignment */}
+              <ProfessionalSection alignment="between" className="px-6 py-4 border-b border-white/5">
+                <div>
+                  <p className="text-white font-semibold text-sm">Matched Sentences Preview</p>
+                  <p className="text-gray-500 text-xs mt-0.5">
+                    Against <span className="text-indigo-400">{inlineHighlight.corpus_filename}</span>
+                    <span className="mx-2 text-gray-700">·</span>
+                    <span className="text-gray-500">{inlineHighlight.matches.length} sentence matches</span>
+                  </p>
+                </div>
+                <ProfessionalButton
+                  variant="secondary"
+                  size="small"
+                  onClick={() => {
+                    const topDoc = corpus.find((c) => c.filename === inlineHighlight.corpus_filename);
+                    if (topDoc) handleHighlight(topDoc.id);
+                  }}
+                  className="bg-indigo-500/15 text-indigo-400 hover:bg-indigo-500/25 border-indigo-500/20"
+                >
+                  <ScanText size={12} className="mr-2" />
+                  View Full Analysis
+                </ProfessionalButton>
+              </ProfessionalSection>
+
+              {/* Professional Match Display */}
+              <div className="divide-y divide-white/5">
+                {inlineHighlight.matches.slice(0, 3).map((match, i) => {
+                  const srcSent = inlineHighlight.source_sentences[match.source_index];
+                  const corpSent = inlineHighlight.corpus_sentences[match.corpus_index];
+                  const variant = match.score >= 70 ? "error" : match.score >= 40 ? "warning" : "success";
+                  const borderColor = match.score >= 70 ? "border-red-500/50" : match.score >= 40 ? "border-orange-500/50" : "border-yellow-500/50";
+                  
+                  return (
+                    <motion.div 
+                      key={i} 
+                      initial={{ opacity: 0 }} 
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: i * 0.06 }}
+                      className={`px-6 py-5 border-l-2 ${borderColor}`}
+                    >
+                      <ProfessionalSection alignment="between" className="mb-3">
+                        <span className="text-gray-600 text-xs font-semibold uppercase tracking-wider">
+                          Match {i + 1}
+                        </span>
+                        <ProfessionalBadge variant={variant} size="small">
+                          {match.score}%
+                        </ProfessionalBadge>
+                      </ProfessionalSection>
+                      
+                      <ProfessionalGrid cols="2" gap="normal">
+                        <div>
+                          <p className="text-gray-600 text-xs uppercase tracking-wider mb-2">
+                            Your Document
+                          </p>
+                          <p className="text-gray-300 text-sm leading-relaxed">{srcSent}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-600 text-xs uppercase tracking-wider mb-2">
+                            Corpus Document
+                          </p>
+                          <p className="text-purple-300/80 text-sm leading-relaxed">{corpSent}</p>
+                        </div>
+                      </ProfessionalGrid>
+                    </motion.div>
+                  );
+                })}
+              </div>
+
+              {/* Professional Footer for additional matches */}
+              {inlineHighlight.matches.length > 3 && (
+                <ProfessionalSection alignment="between" className="px-6 py-3 border-t border-white/5">
+                  <span className="text-gray-600 text-xs">
+                    {inlineHighlight.matches.length - 3} more matches hidden
+                  </span>
+                  <button 
+                    onClick={() => {
+                      const topDoc = corpus.find((c) => c.filename === inlineHighlight.corpus_filename);
+                      if (topDoc) handleHighlight(topDoc.id);
+                    }} 
+                    className="text-indigo-400 text-xs hover:text-indigo-300 font-medium transition-colors"
+                  >
+                    View all {inlineHighlight.matches.length} →
+                  </button>
+                </ProfessionalSection>
+              )}
+            </ProfessionalCard>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </ProfessionalLayout>
   );
 }
 
