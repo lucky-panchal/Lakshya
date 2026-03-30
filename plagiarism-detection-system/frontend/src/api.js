@@ -42,3 +42,19 @@ export const deleteCorpusDoc = (id) => API.delete(`/corpus/${id}`);
 export const getResults = () => API.get("/check/results");
 export const deleteResult = (id) => API.delete(`/check/results/${id}`);
 export const clearAllResults = () => API.delete("/check/results/clear");
+
+export const highlightText = (text, corpusId, threshold = 0.5) => {
+  const form = new FormData();
+  form.append("text", text);
+  form.append("corpus_id", corpusId);
+  form.append("threshold", threshold);
+  return API.post("/check/highlight", form);
+};
+
+export const highlightFile = (file, corpusId, threshold = 0.5) => {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("corpus_id", corpusId);
+  form.append("threshold", threshold);
+  return API.post("/check/highlight/file", form);
+};
