@@ -23,7 +23,7 @@ def get_corpus_doc_by_id(doc_id: int) -> dict | None:
         return {"id": row[0], "filename": row[1], "content": row[2], "source_type": row[3]}
     return None
 
-
+def delete_from_corpus(doc_id: int):
     conn = get_connection()
     conn.execute("DELETE FROM corpus WHERE id = ?", (doc_id,))
     conn.commit()
