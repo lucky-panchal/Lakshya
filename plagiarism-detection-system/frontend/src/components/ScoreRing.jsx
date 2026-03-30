@@ -15,6 +15,7 @@ export default function ScoreRing({ score }) {
         <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
           <circle cx="60" cy="60" r={radius} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="8" />
           <motion.circle
+            key={score}
             cx="60" cy="60" r={radius}
             fill="none"
             stroke={color}
@@ -29,21 +30,23 @@ export default function ScoreRing({ score }) {
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <motion.span
+            key={score}
             className="text-3xl font-bold text-white"
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.5, duration: 0.5 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4, duration: 0.4 }}
           >
             {score}%
           </motion.span>
         </div>
       </div>
       <motion.span
+        key={`label-${score}`}
         className="mt-3 text-sm font-semibold"
         style={{ color }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.8 }}
+        transition={{ delay: 0.6 }}
       >
         {label}
       </motion.span>
