@@ -11,6 +11,7 @@ A full-stack plagiarism detection system built with FastAPI and React. The syste
 - [Project Structure](#project-structure)
 - [Technology Stack](#technology-stack)
 - [NLP Algorithms](#nlp-algorithms)
+- [Features](#features)
 - [Backend](#backend)
   - [API Endpoints](#api-endpoints)
   - [Services](#services)
@@ -74,6 +75,7 @@ plagiarism-detection-system/
 │   │   ├── services/
 │   │   │   ├── parser.py            # Text extraction from PDF, DOCX, TXT, URL
 │   │   │   ├── similarity.py        # TF-IDF and BERT similarity computation
+│   │   │   ├── highlighter.py       # Sentence-level tokenization and match analysis
 │   │   │   └── corpus_manager.py    # All database read/write operations
 │   │   └── models/
 │   │       └── db.py                # SQLite connection and table initialization
@@ -85,11 +87,14 @@ plagiarism-detection-system/
 │   │   │   ├── Navbar.jsx           # Top navigation with route-aware active states
 │   │   │   ├── Footer.jsx           # Footer with author credit and social links
 │   │   │   ├── ScoreRing.jsx        # Animated SVG ring displaying similarity score
-│   │   │   └── SimilarityChart.jsx  # Bar chart showing per-document similarity scores
+│   │   │   ├── SimilarityChart.jsx  # Bar chart showing per-document similarity scores
+│   │   │   └── HighlightViewer.jsx  # Side-by-side sentence match modal
 │   │   ├── pages/
 │   │   │   ├── Check.jsx            # Main plagiarism check interface
 │   │   │   ├── Corpus.jsx           # Corpus management interface
 │   │   │   └── Results.jsx          # Check history with delete functionality
+│   │   ├── utils/
+│   │   │   └── exportPDF.js         # jsPDF report generation utility
 │   │   ├── api.js                   # Axios API client with all endpoint functions
 │   │   ├── App.jsx                  # Root component with routing and theme management
 │   │   └── index.css                # Global styles, animations, Tailwind directives
@@ -114,7 +119,7 @@ plagiarism-detection-system/
 | scikit-learn | 1.4.2 | TF-IDF vectorization and cosine similarity |
 | sentence-transformers | 2.7.0 | BERT sentence embeddings |
 | numpy | 1.26.4 | Numerical operations |
-| python-multipart | 0.0.9 | Multipart form data handling |
+| nltk | 3.9.4 | Sentence tokenization for highlight analysis |
 
 ### Frontend
 
@@ -128,7 +133,8 @@ plagiarism-detection-system/
 | React Dropzone | Drag and drop file upload |
 | React Hot Toast | Toast notifications |
 | Axios | HTTP client |
-| Lucide React | Icon library |
+| jsPDF | PDF generation for report export |
+| html2canvas | DOM capture for chart embedding in PDF |
 
 ---
 
@@ -163,7 +169,21 @@ For bulk processing of large corpora, use TF-IDF as a first pass to filter high-
 
 ---
 
-## Backend
+## Features
+
+### Sentence-Level Highlight Matching
+
+After running a plagiarism check, each matched source in the results list shows a scan icon on hover. Clicking it opens a full-screen side-by-side modal that tokenizes both the submitted document and the matched corpus document into individual sentences using NLTK. TF-IDF cosine similarity is then computed between every source sentence and every corpus sentence. Sentences that exceed the similarity threshold are highlighted — red for high similarity, orange for moderate — in the submitted document, and purple in the corpus document. Each highlighted sentence displays its match percentage inline. This allows precise identification of which specific sentences were plagiarized rather than just an overall document score.
+
+### PDF Report Export
+
+After a check is complete, clicking the Export PDF Report button generates and downloads a formatted A4 PDF report using jsPDF. The report includes a branded header with the LakshyaAI name and generation timestamp, document information section, a color-coded similarity score badge with risk label, a full matched sources table with per-document scores, and a captured image of the similarity bar chart embedded at the end. The PDF is named after the checked document for easy identification.
+
+### Similarity Threshold Alerts
+
+A configurable threshold slider is available in the detection mode panel, toggled via the Threshold button. The default threshold is 70%. After a check, if the top similarity score meets or exceeds the set threshold, a prominent alert banner appears at the top of the page showing the exact score, the threshold value, and a flag message. The threshold indicator in the results panel also updates in real time showing whether the document is safe or exceeded. This allows institutions to define their own acceptable similarity limits rather than relying on fixed risk labels.
+
+---
 
 ### API Endpoints
 
@@ -183,7 +203,8 @@ For bulk processing of large corpora, use TF-IDF as a first pass to filter high-
 | POST | `/api/check/text` | Check raw pasted text against the corpus |
 | GET | `/api/check/results` | Retrieve all past check results |
 | DELETE | `/api/check/results/clear` | Clear all check history |
-| DELETE | `/api/check/results/{id}` | Delete a specific check result |
+| POST | `/api/check/highlight` | Sentence-level match analysis between text and a corpus document |
+| POST | `/api/check/highlight/file` | Sentence-level match analysis between an uploaded file and a corpus document |
 
 #### Corpus Routes — `/api/corpus`
 
@@ -202,7 +223,10 @@ Handles text extraction from all supported input types. PDF extraction uses PyMu
 **similarity.py**  
 Contains two similarity functions — `tfidf_similarity` and `bert_similarity` — both accepting a source string and a list of corpus strings, returning a list of float scores between 0 and 1. The BERT model is initialized once globally using lazy loading and reused across all subsequent requests. The `compute_similarity` function wraps both, accepts a mode parameter, and returns results sorted by similarity score descending.
 
-**corpus_manager.py**  
+**highlighter.py**  
+Handles sentence-level plagiarism analysis. Uses NLTK punkt tokenizer to split both the source and corpus document into individual sentences. Builds a combined TF-IDF matrix across all sentences and computes pairwise cosine similarity between source and corpus sentences. Returns the full sentence lists, indices of highlighted sentences, and a match array with source index, corpus index, and score for each matched pair above the threshold.
+
+
 All database interactions are handled here. Functions cover adding documents to corpus, retrieving the full corpus, deleting individual corpus documents, saving check results, retrieving result history, deleting individual results, and clearing all results.
 
 ### Database Schema
@@ -251,7 +275,9 @@ Displays the full history of all plagiarism checks with timestamps, matched sour
 
 **SimilarityChart** — Recharts bar chart with custom tooltip and color-coded bars. Each bar color reflects the risk level of that particular match.
 
-**Footer** — Contains project branding, author credit with profile photo, and links to GitHub, LinkedIn, and portfolio.
+**HighlightViewer** — Full-screen modal component that renders the sentence-level match analysis. Displays two scrollable panels side by side — submitted document on the left, corpus document on the right. Matched sentences are color-coded by risk level. Each highlighted sentence in the source panel shows its match percentage inline. A stats bar at the top shows total matches, sentence counts, and how many source sentences were flagged.
+
+
 
 ---
 
