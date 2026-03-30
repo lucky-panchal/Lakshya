@@ -1,7 +1,8 @@
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from app.services.parser import parse_file, extract_url
 from app.services.similarity import compute_similarity
-from app.services.corpus_manager import get_corpus, save_result
+from app.services.corpus_manager import get_corpus, save_result, get_corpus_doc_by_id
+from app.services.highlighter import get_highlighted_matches
 import json
 
 router = APIRouter()
@@ -45,6 +46,36 @@ async def _run_check(name: str, content: str, mode: str):
         "mode": mode,
         "matches": matches[:10]
     }
+
+@router.post("/highlight")
+async def highlight_matches(
+    text: str = Form(...),
+    corpus_id: int = Form(...),
+    threshold: float = Form(default=0.5)
+):
+    corpus = get_corpus()
+    doc = next((d for d in corpus if d["id"] == corpus_id), None)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Corpus document not found")
+    result = get_highlighted_matches(text, doc["content"], threshold)
+    return {"corpus_filename": doc["filename"], **result}
+
+@router.post("/highlight/file")
+async def highlight_file(
+    file: UploadFile = File(...),
+    corpus_id: int = Form(...),
+    threshold: float = Form(default=0.5)
+):
+    try:
+        content = await parse_file(file)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    corpus = get_corpus()
+    doc = next((d for d in corpus if d["id"] == corpus_id), None)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Corpus document not found")
+    result = get_highlighted_matches(content, doc["content"], threshold)
+    return {"corpus_filename": doc["filename"], **result}
 
 @router.get("/results")
 def get_all_results():
