@@ -44,7 +44,8 @@ async def _run_check(name: str, content: str, mode: str):
         "top_similarity": top_score,
         "top_match": top_match.get("filename", ""),
         "mode": mode,
-        "matches": matches[:10]
+        "matches": matches[:10],
+        "extracted_text": content
     }
 
 @router.post("/highlight")
