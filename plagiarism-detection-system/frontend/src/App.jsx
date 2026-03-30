@@ -6,12 +6,6 @@ import Check from "./pages/Check";
 import Corpus from "./pages/Corpus";
 import Results from "./pages/Results";
 
-const themeMap = {
-  "/": "theme-check",
-  "/corpus": "theme-corpus",
-  "/results": "theme-results",
-};
-
 function AnimatedRoutes() {
   const location = useLocation();
   return (
@@ -32,19 +26,14 @@ function AnimatedRoutes() {
 }
 
 function AppLayout() {
-  const location = useLocation();
-  const theme = themeMap[location.pathname] || "theme-check";
-
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "#0a0f1e" }}>
-      <div className={`animated-bg ${theme}`}>
-        <div className="orb" />
-      </div>
+      <div className="animated-bg" />
       <div className="relative z-10 flex flex-col min-h-screen">
         <Navbar />
-        <div className="flex-1">
+        <main className="flex-1 py-8">
           <AnimatedRoutes />
-        </div>
+        </main>
         <Footer />
       </div>
     </div>
