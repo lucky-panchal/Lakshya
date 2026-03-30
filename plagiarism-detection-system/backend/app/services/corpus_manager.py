@@ -15,7 +15,15 @@ def get_corpus() -> list[dict]:
     conn.close()
     return [{"id": r[0], "filename": r[1], "content": r[2], "source_type": r[3]} for r in rows]
 
-def delete_from_corpus(doc_id: int):
+def get_corpus_doc_by_id(doc_id: int) -> dict | None:
+    conn = get_connection()
+    row = conn.execute("SELECT id, filename, content, source_type FROM corpus WHERE id = ?", (doc_id,)).fetchone()
+    conn.close()
+    if row:
+        return {"id": row[0], "filename": row[1], "content": row[2], "source_type": row[3]}
+    return None
+
+
     conn = get_connection()
     conn.execute("DELETE FROM corpus WHERE id = ?", (doc_id,))
     conn.commit()
