@@ -84,11 +84,13 @@ plagiarism-detection-system/
 ├── frontend/
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── Navbar.jsx           # Top navigation with route-aware active states
-│   │   │   ├── Footer.jsx           # Footer with author credit and social links
+│   │   │   ├── Navbar.jsx           # Top navigation — logo left, nav center, status right
+│   │   │   ├── Footer.jsx           # Footer — copyright left, creator center, social links right
 │   │   │   ├── ScoreRing.jsx        # Animated SVG ring displaying similarity score
 │   │   │   ├── SimilarityChart.jsx  # Bar chart showing per-document similarity scores
-│   │   │   └── HighlightViewer.jsx  # Side-by-side sentence match modal
+│   │   │   ├── HighlightViewer.jsx  # Side-by-side sentence match modal
+│   │   │   ├── ProfessionalLayout.jsx   # Design system — layout, cards, buttons, badges, grid
+│   │   │   └── ResultDisplayOptions.jsx # 3-mode result viewer (Summary / Detailed / Visual)
 │   │   ├── pages/
 │   │   │   ├── Check.jsx            # Main plagiarism check interface
 │   │   │   ├── Corpus.jsx           # Corpus management interface
@@ -177,7 +179,23 @@ After running a plagiarism check, each matched source in the results list shows 
 
 ### PDF Report Export
 
-After a check is complete, clicking the Export PDF Report button generates and downloads a formatted A4 PDF report using jsPDF. The report includes a branded header with the LakshyaAI name and generation timestamp, document information section, a color-coded similarity score badge with risk label, a full matched sources table with per-document scores, and a captured image of the similarity bar chart embedded at the end. The PDF is named after the checked document for easy identification.
+After a check is complete, clicking the Export PDF Report button generates and downloads a fully detailed A4 dark-theme PDF report using jsPDF. The report includes:
+
+- **Branded header** — LakshyaAI name, generation date, time, detection mode, website
+- **Report series numbering** — `RPT-001`, `RPT-002`... auto-incremented and persisted in `localStorage`
+- **Document info card** — filename, detection mode, analysis date
+- **Score overview card** — donut ring, risk pill, description text, sources matched count
+- **Similarity progress bar** — visual fill bar with 3-zone risk legend
+- **Matched sources** — one card per match, full filename (no truncation), full URL displayed in light blue (never hidden), source type, similarity score with color-coded risk pill
+- **Visual chart** — live Recharts bar chart captured via `html2canvas` and embedded
+- **Summary statistics** — 6-cell grid (total matches, high/medium/low risk, average score, top score)
+- **Disclaimer** block
+- **Footer on every page** — system name, website, report number, page count
+
+**File naming format:**
+```
+LakshyaAI_Report_<docname>_RPT001_20250330.pdf
+```
 
 ### Similarity Threshold Alerts
 
@@ -259,7 +277,13 @@ All database interactions are handled here. Functions cover adding documents to 
 ### Pages
 
 **Check (`/`)**  
-The primary interface. Supports three input modes — file upload via drag and drop, URL input, and raw text paste. Users select a detection mode (TF-IDF or BERT) and submit for analysis. Results are displayed in a two-column layout: an animated score ring on the right showing the top similarity percentage with a color-coded risk label, and a scrollable list of matched corpus documents with individual scores. A bar chart below visualizes the full similarity breakdown across all matched sources.
+The primary interface. Supports three input modes — file upload via drag and drop, URL input, and raw text paste. Users select a detection mode (TF-IDF or BERT) and submit for analysis. An adjustable **similarity threshold** slider (default 70%) triggers an alert banner when exceeded. Results are displayed in a two-column layout with an animated score ring and a scrollable matched sources list. Users can switch between **3 result display modes**:
+
+- **Quick Summary** — score, source count, top match at a glance
+- **Detailed View** — full two-column breakdown with document info and match list
+- **Visual Dashboard** — score gauge ring, risk distribution breakdown, per-match progress bars
+
+An **Advanced Options** panel allows switching display mode and accessing export options. An inline **sentence-level match preview** is shown automatically against the top corpus document after each check. A bar chart below visualizes the full similarity breakdown across all matched sources.
 
 **Corpus (`/corpus`)**  
 Corpus management interface. Users can drag and drop multiple files simultaneously or add URLs one at a time. All current corpus documents are listed with their source type. Individual documents can be removed via a hover-revealed delete button.
@@ -269,16 +293,27 @@ Displays the full history of all plagiarism checks with timestamps, matched sour
 
 ### Components
 
-**Navbar** — Sticky top navigation with glassmorphism styling. Active route is highlighted with an indicator dot. Includes a live API status badge.
+**Navbar** — Sticky top navigation with glassmorphism styling. 3-column layout: logo and brand left, navigation links center (inside a pill container), API live status badge and user avatar right. Active route is highlighted with an indicator dot.
+
+**Footer** — 3-column layout: copyright and branding left, creator profile card center, social links (GitHub, LinkedIn, Portfolio) right. Bottom bar shows tech stack info.
 
 **ScoreRing** — Animated SVG circular progress ring that draws from 0 to the final score on mount. Color transitions from green (low risk) to orange (moderate) to red (high risk) based on score thresholds.
 
 **SimilarityChart** — Recharts bar chart with custom tooltip and color-coded bars. Each bar color reflects the risk level of that particular match.
 
-**HighlightViewer** — Full-screen modal component that renders the sentence-level match analysis. Displays two scrollable panels side by side — submitted document on the left, corpus document on the right. Matched sentences are color-coded by risk level. Each highlighted sentence in the source panel shows its match percentage inline. A stats bar at the top shows total matches, sentence counts, and how many source sentences were flagged.
+**ProfessionalLayout** — Reusable design system used across all pages. Exports the following components:
 
+| Component | Purpose |
+|---|---|
+| `ProfessionalLayout` | Page container with `fullWidth` and `compact` options |
+| `ProfessionalHeader` | 3-column header — left title, center slot, right actions |
+| `ProfessionalSection` | Flex row with `alignment` (left/center/right/between) and `spacing` (tight/normal/loose) |
+| `ProfessionalCard` | Glass card with optional hover lift and padding variants |
+| `ProfessionalButton` | Primary/secondary button with size variants (small/normal/large) |
+| `ProfessionalGrid` | Responsive grid with col presets (1/2/3/4/auto) and gap variants |
+| `ProfessionalBadge` | Color-coded status badge (default/success/warning/error/info) |
 
-
+**ResultDisplayOptions** — Switchable result viewer with 3 modes: Quick Summary, Detailed View, and Visual Dashboard. Includes a score gauge SVG, risk distribution breakdown, and per-match progress bars.
 ---
 
 ## Installation and Setup
