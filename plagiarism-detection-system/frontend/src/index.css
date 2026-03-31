@@ -123,48 +123,40 @@ body {
 
 /* Professional layout utilities */
 .section-spacing {
-  padding-top: 1.5rem;
-  padding-bottom: 1.5rem;
+  padding-top: 1.25rem;
+  padding-bottom: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .section-spacing {
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+  }
 }
 
 .content-container {
-  max-width: 1400px; /* Increased from 1280px */
+  max-width: 1400px;
   margin: 0 auto;
-  padding-left: 1rem; /* Reduced from 1.5rem */
-  padding-right: 1rem; /* Reduced from 1.5rem */
+  padding-left: 1rem;
+  padding-right: 1rem;
 }
 
-/* Responsive content container */
+.full-width-container {
+  max-width: 100%;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
 @media (min-width: 640px) {
-  .content-container {
+  .content-container,
+  .full-width-container {
     padding-left: 1.5rem;
     padding-right: 1.5rem;
   }
 }
 
 @media (min-width: 1024px) {
-  .content-container {
-    padding-left: 2rem;
-    padding-right: 2rem;
-  }
-}
-
-@media (min-width: 1280px) {
-  .content-container {
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
-  }
-}
-
-/* Full width container for specific sections */
-.full-width-container {
-  max-width: 100%;
-  margin: 0;
-  padding-left: 1rem;
-  padding-right: 1rem;
-}
-
-@media (min-width: 640px) {
+  .content-container,
   .full-width-container {
     padding-left: 2rem;
     padding-right: 2rem;

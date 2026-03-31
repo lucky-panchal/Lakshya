@@ -91,8 +91,8 @@ export default function Corpus() {
         }
       />
 
-      {/* Professional Upload Section */}
-      <ProfessionalGrid cols="2" gap="normal" className="mb-8">
+      {/* Upload Section — stacks on mobile */}
+      <ProfessionalGrid cols="2" gap="normal" className="mb-6 sm:mb-8">
         {/* File Upload Card */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }} 
@@ -223,7 +223,7 @@ export default function Corpus() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
                 transition={{ delay: i * 0.04 }}
-                className="flex items-center justify-between px-6 py-4 border-b border-white/5 hover:bg-white/3 transition-colors group last:border-b-0"
+                className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-white/5 hover:bg-white/3 transition-colors group last:border-b-0"
               >
                 <ProfessionalSection spacing="tight" className="min-w-0 flex-1">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
@@ -248,11 +248,11 @@ export default function Corpus() {
                   </div>
                 </ProfessionalSection>
                 
-                <motion.button 
+                <motion.button
                   onClick={() => handleDelete(doc.id, doc.filename)}
-                  whileHover={{ scale: 1.1 }} 
+                  whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
-                  className="opacity-0 group-hover:opacity-100 w-8 h-8 rounded-lg bg-red-500/20 flex items-center justify-center text-red-400 hover:bg-red-500/30 transition-all"
+                  className="opacity-100 sm:opacity-0 group-hover:opacity-100 w-8 h-8 rounded-lg bg-red-500/20 flex items-center justify-center text-red-400 hover:bg-red-500/30 transition-all shrink-0"
                 >
                   <Trash2 size={14} />
                 </motion.button>

@@ -68,13 +68,13 @@ export default function Results() {
         }
       />
 
-      {/* Professional Stats Section */}
+      {/* Stats — 1 col mobile, 3 col desktop */}
       {results.length > 0 && (
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }} 
-          animate={{ opacity: 1, y: 0 }} 
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="mb-8"
+          className="mb-6 sm:mb-8"
         >
           <ProfessionalGrid cols="3" gap="normal">
             {[
@@ -100,17 +100,17 @@ export default function Results() {
                 gradient: "from-red-500 to-pink-500"
               },
             ].map(({ label, value, icon: Icon, variant, gradient }) => (
-              <ProfessionalCard key={label} className={`border-t-2 bg-gradient-to-br ${gradient} bg-opacity-5`}>
-                <ProfessionalSection spacing="tight">
-                  <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${gradient} bg-opacity-20 flex items-center justify-center shrink-0`}>
-                    <Icon size={20} className="text-white" />
-                  </div>
-                  <div>
-                    <p className="text-gray-500 text-xs">{label}</p>
-                    <p className="text-2xl font-bold text-white">{value}</p>
-                  </div>
-                </ProfessionalSection>
-              </ProfessionalCard>
+                  <ProfessionalCard key={label} className="border-t-2">
+                    <ProfessionalSection spacing="tight">
+                      <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br ${gradient} bg-opacity-20 flex items-center justify-center shrink-0`}>
+                        <Icon size={18} className="text-white" />
+                      </div>
+                      <div>
+                        <p className="text-gray-500 text-xs">{label}</p>
+                        <p className="text-xl sm:text-2xl font-bold text-white">{value}</p>
+                      </div>
+                    </ProfessionalSection>
+                  </ProfessionalCard>
             ))}
           </ProfessionalGrid>
         </motion.div>
@@ -148,39 +148,39 @@ export default function Results() {
                   transition={{ delay: i * 0.04 }}
                 >
                   <ProfessionalCard hover className="group">
-                    <ProfessionalSection alignment="between">
-                      <ProfessionalSection spacing="tight" className="min-w-0 flex-1">
-                        <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${risk.bg}`}>
-                          <Icon size={18} className={risk.color} />
+                    <div className="flex items-center justify-between gap-3">
+                      {/* Left */}
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl border flex items-center justify-center shrink-0 ${risk.bg}`}>
+                          <Icon size={16} className={risk.color} />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-white font-medium truncate">{r.filename}</p>
-                          <p className="text-gray-500 text-xs mt-0.5">
+                          <p className="text-white font-medium text-sm truncate">{r.filename}</p>
+                          <p className="text-gray-500 text-xs mt-0.5 truncate">
                             Top match: <span className="text-gray-400">{r.matched_source || "None"}</span>
-                            <span className="mx-2">·</span>
+                            <span className="mx-1.5">·</span>
                             {new Date(r.created_at).toLocaleString()}
                           </p>
                         </div>
-                      </ProfessionalSection>
-                      
-                      <ProfessionalSection spacing="tight" className="shrink-0">
+                      </div>
+                      {/* Right */}
+                      <div className="flex items-center gap-2 shrink-0">
                         <div className="text-right">
                           <ProfessionalBadge variant={variant} size="normal" className="font-bold">
                             {r.score}%
                           </ProfessionalBadge>
                           <p className={`text-xs mt-1 ${risk.color}`}>{risk.label}</p>
                         </div>
-                        
                         <motion.button
                           onClick={() => handleDelete(r.id)}
-                          whileHover={{ scale: 1.1 }} 
+                          whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
-                          className="opacity-0 group-hover:opacity-100 w-8 h-8 rounded-lg bg-red-500/20 flex items-center justify-center text-red-400 hover:bg-red-500/30 transition-all"
+                          className="opacity-100 sm:opacity-0 group-hover:opacity-100 w-8 h-8 rounded-lg bg-red-500/20 flex items-center justify-center text-red-400 hover:bg-red-500/30 transition-all"
                         >
                           <Trash2 size={14} />
                         </motion.button>
-                      </ProfessionalSection>
-                    </ProfessionalSection>
+                      </div>
+                    </div>
                   </ProfessionalCard>
                 </motion.div>
               );

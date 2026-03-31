@@ -273,30 +273,30 @@ export default function Check() {
         )}
       </AnimatePresence>
 
-      {/* Professional Grid Layout - 3 columns input, 2 columns results */}
+      {/* Main Grid — full width on mobile, 3+2 on desktop */}
       <ProfessionalGrid cols="auto" gap="normal">
-        {/* Left Panel - Input Section (3 columns) */}
-        <motion.div 
-          initial={{ opacity: 0, x: -16 }} 
+        {/* Left Panel */}
+        <motion.div
+          initial={{ opacity: 0, x: -16 }}
           animate={{ opacity: 1, x: 0 }}
           className="lg:col-span-3 space-y-4"
         >
-          {/* Tab Navigation - Professional alignment */}
+          {/* Tab Navigation */}
           <ProfessionalCard padding="tight">
-            <ProfessionalSection spacing="tight">
+            <div className="flex gap-1 sm:gap-2 flex-wrap">
               {TABS.map(({ id, icon: Icon, label }) => (
                 <ProfessionalButton
                   key={id}
                   variant={tab === id ? "primary" : "secondary"}
                   size="small"
                   onClick={() => setTab(id)}
-                  className={tab === id ? "" : "bg-white/4 hover:bg-white/8"}
+                  className={`flex-1 sm:flex-none ${tab === id ? "" : ""}`}
                 >
-                  <Icon size={13} className="mr-2" />
+                  <Icon size={13} className="mr-1.5" />
                   {label}
                 </ProfessionalButton>
               ))}
-            </ProfessionalSection>
+            </div>
           </ProfessionalCard>
 
           {/* Input Content Area */}
@@ -438,9 +438,9 @@ export default function Check() {
           </ProfessionalButton>
         </motion.div>
 
-        {/* Right Panel - Results Section (2 columns) */}
-        <motion.div 
-          initial={{ opacity: 0, x: 16 }} 
+        {/* Right Panel — full width on mobile, 2 cols on desktop */}
+        <motion.div
+          initial={{ opacity: 0, x: 16 }}
           animate={{ opacity: 1, x: 0 }}
           className="lg:col-span-2 space-y-4"
         >
@@ -500,18 +500,17 @@ export default function Check() {
         </div>
       )}
 
-      {/* Professional Inline Sentence Preview - Full width */}
+      {/* Inline Sentence Preview */}
       <AnimatePresence>
         {inlineHighlight && inlineHighlight.matches.length > 0 && (
-          <motion.div 
-            initial={{ opacity: 0, y: 16 }} 
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }} 
+            exit={{ opacity: 0 }}
             className="mt-8"
           >
             <ProfessionalCard className="overflow-hidden p-0">
-              {/* Header with professional alignment */}
-              <ProfessionalSection alignment="between" className="px-6 py-4 border-b border-white/5">
+              <ProfessionalSection alignment="between" className="px-4 sm:px-6 py-4 border-b border-white/5 flex-wrap gap-3">
                 <div>
                   <p className="text-white font-semibold text-sm">Matched Sentences Preview</p>
                   <p className="text-gray-500 text-xs mt-0.5">
@@ -559,28 +558,24 @@ export default function Check() {
                         </ProfessionalBadge>
                       </ProfessionalSection>
                       
-                      <ProfessionalGrid cols="2" gap="normal">
+                      {/* Side by side on md+, stacked on mobile */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <p className="text-gray-600 text-xs uppercase tracking-wider mb-2">
-                            Your Document
-                          </p>
+                          <p className="text-gray-600 text-xs uppercase tracking-wider mb-2">Your Document</p>
                           <p className="text-gray-300 text-sm leading-relaxed">{srcSent}</p>
                         </div>
-                        <div>
-                          <p className="text-gray-600 text-xs uppercase tracking-wider mb-2">
-                            Corpus Document
-                          </p>
+                        <div className="border-t md:border-t-0 md:border-l border-white/5 pt-3 md:pt-0 md:pl-4">
+                          <p className="text-gray-600 text-xs uppercase tracking-wider mb-2">Corpus Document</p>
                           <p className="text-purple-300/80 text-sm leading-relaxed">{corpSent}</p>
                         </div>
-                      </ProfessionalGrid>
+                      </div>
                     </motion.div>
                   );
                 })}
               </div>
 
-              {/* Professional Footer for additional matches */}
               {inlineHighlight.matches.length > 3 && (
-                <ProfessionalSection alignment="between" className="px-6 py-3 border-t border-white/5">
+                <ProfessionalSection alignment="between" className="px-4 sm:px-6 py-3 border-t border-white/5">
                   <span className="text-gray-600 text-xs">
                     {inlineHighlight.matches.length - 3} more matches hidden
                   </span>
