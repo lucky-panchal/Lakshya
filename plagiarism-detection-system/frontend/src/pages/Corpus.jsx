@@ -223,36 +223,37 @@ export default function Corpus() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
                 transition={{ delay: i * 0.04 }}
-                className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-white/5 hover:bg-white/3 transition-colors group last:border-b-0"
+                className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-white/5 hover:bg-white/3 transition-colors last:border-b-0"
               >
-                <ProfessionalSection spacing="tight" className="min-w-0 flex-1">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                    doc.source_type === "url" 
-                      ? "bg-purple-500/20 border border-purple-500/20" 
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                    doc.source_type === "url"
+                      ? "bg-purple-500/20 border border-purple-500/20"
                       : "bg-blue-500/20 border border-blue-500/20"
                   }`}>
-                    {doc.source_type === "url" ? 
-                      <Globe size={15} className="text-purple-400" /> : 
-                      <FileText size={15} className="text-blue-400" />
+                    {doc.source_type === "url"
+                      ? <Globe size={14} className="text-purple-400" />
+                      : <FileText size={14} className="text-blue-400" />
                     }
                   </div>
                   <div className="min-w-0">
                     <p className="text-white text-sm font-medium truncate">{doc.filename}</p>
-                    <ProfessionalBadge 
-                      variant={doc.source_type === "url" ? "info" : "default"} 
+                    <ProfessionalBadge
+                      variant={doc.source_type === "url" ? "info" : "default"}
                       size="small"
                       className="mt-1"
                     >
                       {doc.source_type}
                     </ProfessionalBadge>
                   </div>
-                </ProfessionalSection>
-                
+                </div>
+
+                {/* Delete — always visible, no hover required */}
                 <motion.button
                   onClick={() => handleDelete(doc.id, doc.filename)}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
-                  className="opacity-100 sm:opacity-0 group-hover:opacity-100 w-8 h-8 rounded-lg bg-red-500/20 flex items-center justify-center text-red-400 hover:bg-red-500/30 transition-all shrink-0"
+                  className="w-8 h-8 rounded-lg bg-red-500/15 flex items-center justify-center text-red-400 hover:bg-red-500/30 transition-all shrink-0 ml-3"
                 >
                   <Trash2 size={14} />
                 </motion.button>
