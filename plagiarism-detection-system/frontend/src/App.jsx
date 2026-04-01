@@ -5,6 +5,7 @@ import Footer from "./components/Footer";
 import Check from "./pages/Check";
 import Corpus from "./pages/Corpus";
 import Results from "./pages/Results";
+import NotFound from "./pages/NotFound";
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -16,9 +17,10 @@ function AnimatedRoutes() {
         exit={{ opacity: 0, y: -16 }}
         transition={{ duration: 0.2 }}>
         <Routes location={location}>
-          <Route path="/" element={<Check />} />
-          <Route path="/corpus" element={<Corpus />} />
-          <Route path="/results" element={<Results />} />
+          <Route path="/"        element={<Check />}    />
+          <Route path="/corpus"  element={<Corpus />}   />
+          <Route path="/results" element={<Results />}  />
+          <Route path="*"        element={<NotFound />} />
         </Routes>
       </motion.div>
     </AnimatePresence>

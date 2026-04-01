@@ -1,8 +1,36 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "http://127.0.0.1:8000/api",
+  baseURL: process.env.REACT_APP_API_URL || "http://127.0.0.1:8000/api",
+  timeout: 60000, // 60s timeout for BERT requests
 });
+
+// Global error interceptor — maps backend errors to friendly messages
+API.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    const status = err.response?.status;
+    const detail = err.response?.data?.detail;
+
+    if (!err.response) {
+      err.friendlyMessage = "Cannot reach the server. Make sure the backend is running.";
+    } else if (status === 400 && detail?.includes("Corpus is empty")) {
+      err.friendlyMessage = "Your corpus is empty. Please upload documents first.";
+    } else if (status === 400 && detail?.includes("URL")) {
+      err.friendlyMessage = "Could not fetch that URL. It may be blocked or unavailable.";
+    } else if (status === 413) {
+      err.friendlyMessage = "File is too large. Please upload a file under 10MB.";
+    } else if (status === 404) {
+      err.friendlyMessage = "Resource not found.";
+    } else if (status === 500) {
+      err.friendlyMessage = "Server error. Please try again in a moment.";
+    } else {
+      err.friendlyMessage = detail || "Something went wrong. Please try again.";
+    }
+
+    return Promise.reject(err);
+  }
+);
 
 export const uploadFile = (file) => {
   const form = new FormData();
@@ -37,11 +65,11 @@ export const checkText = (text, mode = "tfidf") => {
   return API.post("/check/text", form);
 };
 
-export const getCorpus = () => API.get("/corpus/");
-export const deleteCorpusDoc = (id) => API.delete(`/corpus/${id}`);
-export const getResults = () => API.get("/check/results");
-export const deleteResult = (id) => API.delete(`/check/results/${id}`);
-export const clearAllResults = () => API.delete("/check/results/clear");
+export const getCorpus       = ()    => API.get("/corpus/");
+export const deleteCorpusDoc = (id)  => API.delete(`/corpus/${id}`);
+export const getResults      = ()    => API.get("/check/results");
+export const deleteResult    = (id)  => API.delete(`/check/results/${id}`);
+export const clearAllResults = ()    => API.delete("/check/results/clear");
 
 export const highlightText = (text, corpusId, threshold = 0.5) => {
   const form = new FormData();

@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import toast, { Toaster } from "react-hot-toast";
 import { checkFile, checkURL, checkText, getCorpus, highlightText, highlightFile } from "../api";
@@ -42,6 +43,13 @@ export default function Check() {
   const [inlineHighlight, setInlineHighlight] = useState(null);
   const [resultDisplayMode, setResultDisplayMode] = useState("summary");
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  const [corpusEmpty, setCorpusEmpty] = useState(false);
+  const navigate = useNavigate();
+
+  // Check if corpus is empty on mount
+  useEffect(() => {
+    getCorpus().then(res => setCorpusEmpty(res.data.length === 0)).catch(() => {});
+  }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {
@@ -50,22 +58,34 @@ export default function Check() {
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [],
     },
     multiple: false,
-    onDrop: (files) => { setFile(files[0]); toast.success(`${files[0].name} ready`); },
+    onDrop: (files) => {
+      const f = files[0];
+      if (f.size > 10 * 1024 * 1024) {
+        toast.error("File exceeds 10MB limit. Please upload a smaller file.");
+        return;
+      }
+      setFile(f);
+      toast.success(`${f.name} ready`);
+    },
   });
 
   const handleCheck = async () => {
     setResult(null); setInlineHighlight(null); setLoading(true);
-    const toastId = toast.loading("Analyzing document...");
+    const toastId = toast.loading(mode === "bert" ? "Loading BERT model..." : "Analyzing document...");
     try {
       let res;
       if (tab === "File" && file) res = await checkFile(file, mode);
       else if (tab === "URL" && url) res = await checkURL(url, mode);
       else if (tab === "Text" && text) res = await checkText(text, mode);
       else { toast.error("Please provide input.", { id: toastId }); setLoading(false); return; }
+
+      if (mode === "bert") toast.loading("Comparing with corpus...", { id: toastId });
+
       setResult(res.data);
       setExtractedText(res.data.extracted_text || "");
       const corpusRes = await getCorpus();
       setCorpus(corpusRes.data);
+      setCorpusEmpty(corpusRes.data.length === 0);
       toast.success("Analysis complete!", { id: toastId });
       if (res.data.matches?.length > 0) {
         const topDoc = corpusRes.data.find((c) => c.filename === res.data.matches[0].filename);
@@ -79,7 +99,7 @@ export default function Check() {
         }
       }
     } catch (e) {
-      toast.error(e.response?.data?.detail || "Something went wrong.", { id: toastId });
+      toast.error(e.friendlyMessage || e.response?.data?.detail || "Something went wrong.", { id: toastId });
     }
     setLoading(false);
   };
@@ -159,7 +179,32 @@ export default function Check() {
         }
       />
 
-      {/* Threshold Control Panel - Full width, collapsible */}
+      {/* Empty corpus warning banner */}
+      {corpusEmpty && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6"
+        >
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 sm:px-5 py-4 rounded-2xl border border-amber-500/30 bg-amber-500/8">
+            <div className="flex items-start gap-3">
+              <AlertTriangle size={18} className="text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-amber-400 font-semibold text-sm">Corpus is Empty</p>
+                <p className="text-amber-300/60 text-xs mt-0.5">You need to upload reference documents before running a check.</p>
+              </div>
+            </div>
+            <ProfessionalButton
+              variant="secondary"
+              size="small"
+              onClick={() => navigate("/corpus")}
+              className="border-amber-500/30 text-amber-400 hover:bg-amber-500/15 shrink-0"
+            >
+              Go to Corpus →
+            </ProfessionalButton>
+          </div>
+        </motion.div>
+      )}
       <AnimatePresence>
         {showThresholdSlider && (
           <motion.div 

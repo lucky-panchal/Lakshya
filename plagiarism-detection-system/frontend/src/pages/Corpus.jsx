@@ -3,20 +3,24 @@ import { useDropzone } from "react-dropzone";
 import { motion, AnimatePresence } from "framer-motion";
 import toast, { Toaster } from "react-hot-toast";
 import { getCorpus, uploadFile, uploadURL, deleteCorpusDoc } from "../api";
-import ProfessionalLayout, { 
-  ProfessionalHeader, 
-  ProfessionalSection, 
-  ProfessionalCard, 
-  ProfessionalButton, 
+import ProfessionalLayout, {
+  ProfessionalHeader,
+  ProfessionalSection,
+  ProfessionalCard,
+  ProfessionalButton,
   ProfessionalGrid,
-  ProfessionalBadge 
+  ProfessionalBadge
 } from "../components/ProfessionalLayout";
-import { Upload, Link2, FileText, Globe, Trash2, Database, Plus } from "lucide-react";
+import CorpusPreview from "../components/CorpusPreview";
+import { Upload, Link2, FileText, Globe, Trash2, Database, Plus, Eye } from "lucide-react";
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 export default function Corpus() {
   const [corpus, setCorpus] = useState([]);
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState(null);
 
   const fetchCorpus = async () => {
     const res = await getCorpus();
@@ -33,6 +37,12 @@ export default function Corpus() {
     },
     multiple: true,
     onDrop: async (files) => {
+      // File size validation
+      const oversized = files.filter(f => f.size > MAX_FILE_SIZE);
+      if (oversized.length > 0) {
+        toast.error(`${oversized[0].name} exceeds 10MB limit`);
+        return;
+      }
       setLoading(true);
       const toastId = toast.loading(`Uploading ${files.length} file(s)...`);
       try {
@@ -72,6 +82,11 @@ export default function Corpus() {
       <Toaster position="top-right" toastOptions={{
         style: { background: "#1a1f35", color: "#fff", border: "1px solid rgba(255,255,255,0.1)" }
       }} />
+
+      {/* Corpus Document Preview Modal */}
+      <AnimatePresence>
+        {previewDoc && <CorpusPreview doc={previewDoc} onClose={() => setPreviewDoc(null)} />}
+      </AnimatePresence>
 
       {/* Professional Header */}
       <ProfessionalHeader
@@ -248,15 +263,27 @@ export default function Corpus() {
                   </div>
                 </div>
 
-                {/* Delete — always visible, no hover required */}
-                <motion.button
-                  onClick={() => handleDelete(doc.id, doc.filename)}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  className="w-8 h-8 rounded-lg bg-red-500/15 flex items-center justify-center text-red-400 hover:bg-red-500/30 transition-all shrink-0 ml-3"
-                >
-                  <Trash2 size={14} />
-                </motion.button>
+                {/* Actions — preview + delete, always visible */}
+                <div className="flex items-center gap-2 shrink-0 ml-3">
+                  <motion.button
+                    onClick={() => setPreviewDoc(doc)}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="w-8 h-8 rounded-lg bg-indigo-500/15 flex items-center justify-center text-indigo-400 hover:bg-indigo-500/30 transition-all"
+                    title="Preview document"
+                  >
+                    <Eye size={14} />
+                  </motion.button>
+                  <motion.button
+                    onClick={() => handleDelete(doc.id, doc.filename)}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="w-8 h-8 rounded-lg bg-red-500/15 flex items-center justify-center text-red-400 hover:bg-red-500/30 transition-all"
+                    title="Delete document"
+                  >
+                    <Trash2 size={14} />
+                  </motion.button>
+                </div>
               </motion.div>
             ))}
           </AnimatePresence>
