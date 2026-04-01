@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { BarChart3, List, Eye, AlertTriangle, CheckCircle, Info, FileText, TrendingUp, Target, Zap } from "lucide-react";
-import { ProfessionalSection, ProfessionalBadge } from "./ProfessionalLayout";
+import { BarChart3, List, AlertTriangle, CheckCircle, Info, FileText, TrendingUp, Target, Zap } from "lucide-react";
+import { ProfessionalBadge } from "./ProfessionalLayout";
 
 const DISPLAY_MODES = [
   { id: "summary",  label: "Summary",   icon: Zap,      description: "Essential info at a glance"    },

@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import toast, { Toaster } from "react-hot-toast";
 import { checkFile, checkURL, checkText, getCorpus, highlightText, highlightFile } from "../api";
 import SimilarityChart from "../components/SimilarityChart";
-import ScoreRing from "../components/ScoreRing";
 import HighlightViewer from "../components/HighlightViewer";
 import ResultDisplayOptions from "../components/ResultDisplayOptions";
 import ProfessionalLayout, { 
@@ -17,7 +16,7 @@ import ProfessionalLayout, {
   ProfessionalBadge 
 } from "../components/ProfessionalLayout";
 import { exportReportAsPDF } from "../utils/exportPDF";
-import { FileText, Link2, AlignLeft, Zap, Brain, Upload, AlertTriangle, CheckCircle, Info, Download, ScanText, SlidersHorizontal, Eye, Settings } from "lucide-react";
+import { FileText, Link2, AlignLeft, Zap, Brain, Upload, AlertTriangle, Download, ScanText, SlidersHorizontal, Eye, Settings } from "lucide-react";
 
 const TABS = [
   { id: "File", icon: FileText, label: "File Upload" },
@@ -36,7 +35,6 @@ export default function Check() {
   const [threshold, setThreshold] = useState(70);
   const [showThresholdSlider, setShowThresholdSlider] = useState(false);
   const [highlightData, setHighlightData] = useState(null);
-  const [highlightLoading, setHighlightLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
   const [corpus, setCorpus] = useState([]);
   const [extractedText, setExtractedText] = useState("");
@@ -105,7 +103,6 @@ export default function Check() {
   };
 
   const handleHighlight = async (corpusId) => {
-    setHighlightLoading(true);
     const toastId = toast.loading("Loading sentence analysis...");
     try {
       const sourceText = tab === "Text" ? text : extractedText;
@@ -117,7 +114,6 @@ export default function Check() {
     } catch (e) {
       toast.error("Failed to load highlight analysis", { id: toastId });
     }
-    setHighlightLoading(false);
   };
 
   const handleExportPDF = async () => {
@@ -131,12 +127,6 @@ export default function Check() {
       toast.error("PDF export failed", { id: "pdf" });
     }
     setExportLoading(false);
-  };
-
-  const getRiskIcon = (score) => {
-    if (score >= 70) return <AlertTriangle size={14} className="text-red-400 shrink-0" />;
-    if (score >= 40) return <Info size={14} className="text-orange-400 shrink-0" />;
-    return <CheckCircle size={14} className="text-green-400 shrink-0" />;
   };
 
   const isAboveThreshold = result && result.top_similarity >= threshold;
