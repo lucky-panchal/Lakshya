@@ -12,7 +12,3 @@ services:
         value: https://lakshhya.netlify.app
       - key: BACKEND_URL
         value: https://lakshyaai-backend.onrender.com
-    disk:
-      name: corpus-data
-      mountPath: /data
-      sizeGB: 1

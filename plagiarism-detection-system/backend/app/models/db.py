@@ -3,13 +3,16 @@ import os
 import threading
 
 # Use Render persistent disk in production, local path in development
+# Use local path inside the project on Render (no disk needed)
 DB_PATH = os.environ.get(
     "DATABASE_PATH",
     os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "corpus.db"))
 )
 
-# Ensure the directory exists
-os.makedirs(os.path.dirname(DB_PATH), exist_ok=True) if os.path.dirname(DB_PATH) else None
+# Ensure parent directory exists
+_db_dir = os.path.dirname(DB_PATH)
+if _db_dir:
+    os.makedirs(_db_dir, exist_ok=True)
 
 # Thread-local storage so each thread gets its own connection
 _local = threading.local()
