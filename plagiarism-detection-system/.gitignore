@@ -1,5 +1,7 @@
 # Database
 backend/corpus.db
+backend/corpus.db-shm
+backend/corpus.db-wal
 
 # Python
 __pycache__/
@@ -17,6 +19,7 @@ env/
 
 # Environment
 backend/.env
+frontend/.env
 
 # Node
 frontend/node_modules/
@@ -31,3 +34,6 @@ Thumbs.db
 .idea/
 *.suo
 *.user
+
+# Claude
+.claude/

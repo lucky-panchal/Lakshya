@@ -2,8 +2,10 @@ import sqlite3
 import os
 import threading
 
-DB_PATH = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "..", "corpus.db")
+# Use Render persistent disk in production, local path in development
+DB_PATH = os.environ.get(
+    "DATABASE_PATH",
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "corpus.db"))
 )
 
 # Thread-local storage so each thread gets its own connection
