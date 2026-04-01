@@ -10,6 +10,8 @@ services:
         value: 3.11.0
       - key: CORS_ORIGIN
         value: https://lakshhya.netlify.app
+      - key: BACKEND_URL
+        value: https://lakshyaai-backend.onrender.com
     disk:
       name: corpus-data
       mountPath: /data
