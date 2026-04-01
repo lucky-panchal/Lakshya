@@ -4,11 +4,12 @@ import { X, FileText, Globe, Calendar, AlignLeft } from "lucide-react";
 export default function CorpusPreview({ doc, onClose }) {
   if (!doc) return null;
 
-  const wordCount  = doc.content.trim().split(/\s+/).length;
-  const charCount  = doc.content.length;
-  const sentences  = doc.content.split(/[.!?]+/).filter(s => s.trim().length > 0).length;
-  const preview    = doc.content.slice(0, 1200);
-  const isTruncated = doc.content.length > 1200;
+  const content    = doc.content || "";
+  const wordCount  = content.trim().split(/\s+/).filter(Boolean).length;
+  const charCount  = content.length;
+  const sentences  = content.split(/[.!?]+/).filter(s => s.trim().length > 0).length;
+  const preview    = content.slice(0, 1200);
+  const isTruncated = content.length > 1200;
 
   return (
     <AnimatePresence>

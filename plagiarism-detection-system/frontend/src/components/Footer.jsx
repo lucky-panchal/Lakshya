@@ -26,12 +26,9 @@ export default function Footer() {
           {/* Center — Creator */}
           <div className="flex items-center gap-3 glass px-4 py-2 rounded-full order-1 sm:order-2">
             <img src={profileImg} alt="Lacki Lohar" className="w-7 h-7 rounded-full object-cover ring-2 ring-indigo-500/40" />
-            <div className="text-center">
-              <span className="text-gray-400 text-sm block">
-                Crafted by <span className="text-white font-semibold">Lacki Lohar</span>
-              </span>
-              <span className="text-gray-500 text-xs">Senior Developer</span>
-            </div>
+            <span className="text-gray-400 text-sm">
+              Crafted by <span className="text-white font-semibold">Lacki Lohar</span>
+            </span>
           </div>
 
           {/* Right — Social links */}
