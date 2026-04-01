@@ -9,7 +9,7 @@ services:
       - key: PYTHON_VERSION
         value: 3.11.0
       - key: CORS_ORIGIN
-        value: https://lakshyaai.netlify.app
+        value: https://lakshhya.netlify.app
     disk:
       name: corpus-data
       mountPath: /data
