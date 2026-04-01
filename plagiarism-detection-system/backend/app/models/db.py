@@ -8,6 +8,9 @@ DB_PATH = os.environ.get(
     os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "corpus.db"))
 )
 
+# Ensure the directory exists
+os.makedirs(os.path.dirname(DB_PATH), exist_ok=True) if os.path.dirname(DB_PATH) else None
+
 # Thread-local storage so each thread gets its own connection
 _local = threading.local()
 
