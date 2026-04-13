@@ -3,50 +3,92 @@ from app.services.parser import parse_file, extract_url
 from app.services.similarity import compute_similarity
 from app.services.corpus_manager import get_corpus, save_result, get_corpus_doc_by_id
 from app.services.highlighter import get_highlighted_matches
+from app.services.academic_search import search_academic_databases
+import asyncio
 import json
 
 router = APIRouter()
 
 @router.post("/file")
-async def check_file(file: UploadFile = File(...), mode: str = Form(default="tfidf")):
+async def check_file(
+    file: UploadFile = File(...),
+    mode: str = Form(default="tfidf"),
+    include_academic: bool = Form(default=False)
+):
     try:
         content = await parse_file(file)
-        return await _run_check(file.filename, content, mode)
+        return await _run_check(file.filename, content, mode, include_academic)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/url")
-async def check_url(url: str = Form(...), mode: str = Form(default="tfidf")):
+async def check_url(
+    url: str = Form(...),
+    mode: str = Form(default="tfidf"),
+    include_academic: bool = Form(default=False)
+):
     try:
-        from app.services.parser import extract_url
         content = extract_url(url)
-        return await _run_check(url, content, mode)
+        return await _run_check(url, content, mode, include_academic)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/text")
-async def check_text(text: str = Form(...), label: str = Form(default="manual input"), mode: str = Form(default="tfidf")):
-    return await _run_check(label, text, mode)
+async def check_text(
+    text: str = Form(...),
+    label: str = Form(default="manual input"),
+    mode: str = Form(default="tfidf"),
+    include_academic: bool = Form(default=False)
+):
+    return await _run_check(label, text, mode, include_academic)
 
-async def _run_check(name: str, content: str, mode: str):
+async def _run_check(name: str, content: str, mode: str, include_academic: bool = False):
     corpus = get_corpus()
     if not corpus:
         raise HTTPException(status_code=400, detail="Corpus is empty. Upload documents first.")
 
+    # Run corpus similarity
     matches = compute_similarity(content, corpus, mode)
     top_match = matches[0] if matches else {}
     top_score = top_match.get("similarity", 0)
 
     save_result(name, top_score, top_match.get("filename", ""), json.dumps(matches[:10]))
 
-    return {
-        "document": name,
+    response = {
+        "document":       name,
         "top_similarity": top_score,
-        "top_match": top_match.get("filename", ""),
-        "mode": mode,
-        "matches": matches[:10],
-        "extracted_text": content
+        "top_match":      top_match.get("filename", ""),
+        "mode":           mode,
+        "matches":        matches[:10],
+        "extracted_text": content,
+        "academic":       None
     }
+
+    # Run academic search if requested
+    if include_academic:
+        try:
+            academic = await asyncio.to_thread(search_academic_databases, content)
+            response["academic"] = academic
+        except Exception:
+            response["academic"] = {
+                "academic_matches":       [],
+                "academic_top_score":     0,
+                "academic_sources_count": 0,
+                "databases_searched":     []
+            }
+
+    return response
+
+@router.post("/academic")
+async def check_academic_only(
+    text: str = Form(...),
+):
+    """Standalone endpoint — search academic databases only, no corpus needed."""
+    try:
+        result = await asyncio.to_thread(search_academic_databases, text)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/highlight")
 async def highlight_matches(

@@ -3,6 +3,7 @@ import { useDropzone } from "react-dropzone";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import toast, { Toaster } from "react-hot-toast";
+import AcademicResults from "../components/AcademicResults";
 import { checkFile, checkURL, checkText, getCorpus, highlightText, highlightFile } from "../api";
 import SimilarityChart from "../components/SimilarityChart";
 import HighlightViewer from "../components/HighlightViewer";
@@ -16,7 +17,7 @@ import ProfessionalLayout, {
   ProfessionalBadge 
 } from "../components/ProfessionalLayout";
 import { exportReportAsPDF } from "../utils/exportPDF";
-import { FileText, Link2, AlignLeft, Zap, Brain, Upload, AlertTriangle, Download, ScanText, SlidersHorizontal, Eye, Settings } from "lucide-react";
+import { FileText, Link2, AlignLeft, Zap, Brain, Upload, AlertTriangle, Download, ScanText, SlidersHorizontal, Eye, Settings, BookOpen } from "lucide-react";
 
 const TABS = [
   { id: "File", icon: FileText, label: "File Upload" },
@@ -42,6 +43,9 @@ export default function Check() {
   const [resultDisplayMode, setResultDisplayMode] = useState("summary");
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [corpusEmpty, setCorpusEmpty] = useState(false);
+  const [includeAcademic, setIncludeAcademic] = useState(false);
+  const [academicData, setAcademicData] = useState(null);
+  const [academicLoading, setAcademicLoading] = useState(false);
   const navigate = useNavigate();
 
   // Check if corpus is empty on mount
@@ -68,19 +72,20 @@ export default function Check() {
   });
 
   const handleCheck = async () => {
-    setResult(null); setInlineHighlight(null); setLoading(true);
+    setResult(null); setInlineHighlight(null); setLoading(true); setAcademicData(null);
     const toastId = toast.loading(mode === "bert" ? "Loading BERT model..." : "Analyzing document...");
     try {
       let res;
-      if (tab === "File" && file) res = await checkFile(file, mode);
-      else if (tab === "URL" && url) res = await checkURL(url, mode);
-      else if (tab === "Text" && text) res = await checkText(text, mode);
+      if (tab === "File" && file) res = await checkFile(file, mode, includeAcademic);
+      else if (tab === "URL" && url) res = await checkURL(url, mode, includeAcademic);
+      else if (tab === "Text" && text) res = await checkText(text, mode, includeAcademic);
       else { toast.error("Please provide input.", { id: toastId }); setLoading(false); return; }
 
       if (mode === "bert") toast.loading("Comparing with corpus...", { id: toastId });
 
       setResult(res.data);
       setExtractedText(res.data.extracted_text || "");
+      if (res.data.academic) setAcademicData(res.data.academic);
       const corpusRes = await getCorpus();
       setCorpus(corpusRes.data);
       setCorpusEmpty(corpusRes.data.length === 0);
@@ -424,8 +429,8 @@ export default function Check() {
                 { id: "tfidf", icon: Zap, label: "TF-IDF", desc: "Fast · Exact matches" },
                 { id: "bert", icon: Brain, label: "BERT", desc: "Deep · Catches paraphrasing" },
               ].map(({ id, icon: Icon, label, desc }) => (
-                <button 
-                  key={id} 
+                <button
+                  key={id}
                   onClick={() => setMode(id)}
                   className={`flex items-center gap-3 p-4 rounded-xl border text-left transition-all ${
                     mode === id ? "border-indigo-500/50 bg-indigo-500/10" : "border-white/5 bg-white/2 hover:border-white/12"
@@ -445,6 +450,44 @@ export default function Check() {
                 </button>
               ))}
             </ProfessionalGrid>
+
+            {/* Academic Search Toggle */}
+            <div className="mt-4 pt-4 border-t border-white/5">
+              <button
+                onClick={() => setIncludeAcademic(!includeAcademic)}
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all ${
+                  includeAcademic
+                    ? "border-indigo-500/50 bg-indigo-500/10"
+                    : "border-white/5 bg-white/2 hover:border-white/12"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                    includeAcademic ? "bg-indigo-500/25" : "bg-white/5"
+                  }`}>
+                    <BookOpen size={16} className={includeAcademic ? "text-indigo-400" : "text-gray-500"} />
+                  </div>
+                  <div className="text-left">
+                    <p className={`text-sm font-semibold ${includeAcademic ? "text-white" : "text-gray-400"}`}>
+                      Academic Database Search
+                    </p>
+                    <p className="text-xs text-gray-600 mt-0.5">Semantic Scholar · CrossRef · arXiv</p>
+                  </div>
+                </div>
+                <div className={`w-10 h-5 rounded-full transition-all relative ${
+                  includeAcademic ? "bg-indigo-500" : "bg-white/10"
+                }`}>
+                  <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${
+                    includeAcademic ? "left-5" : "left-0.5"
+                  }`} />
+                </div>
+              </button>
+              {includeAcademic && (
+                <p className="text-amber-400/70 text-xs mt-2 px-1">
+                  ⚠ Academic search adds 5-10 seconds to analysis time
+                </p>
+              )}
+            </div>
           </ProfessionalCard>
 
           {/* Check Button */}
@@ -528,11 +571,16 @@ export default function Check() {
         </motion.div>
       </ProfessionalGrid>
 
-      {/* Professional Chart Section - Full width with left-aligned title */}
+      {/* Chart */}
       {result && (
         <div id="similarity-chart" className="mt-8">
           <SimilarityChart matches={result.matches} />
         </div>
+      )}
+
+      {/* Academic Results */}
+      {(academicData || academicLoading) && (
+        <AcademicResults data={academicData} loading={academicLoading} />
       )}
 
       {/* Inline Sentence Preview */}

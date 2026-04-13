@@ -44,25 +44,34 @@ export const uploadURL = (url) => {
   return API.post("/upload/url", form);
 };
 
-export const checkFile = (file, mode = "tfidf") => {
+export const checkFile = (file, mode = "tfidf", includeAcademic = false) => {
   const form = new FormData();
   form.append("file", file);
   form.append("mode", mode);
+  form.append("include_academic", includeAcademic);
   return API.post("/check/file", form);
 };
 
-export const checkURL = (url, mode = "tfidf") => {
+export const checkURL = (url, mode = "tfidf", includeAcademic = false) => {
   const form = new FormData();
   form.append("url", url);
   form.append("mode", mode);
+  form.append("include_academic", includeAcademic);
   return API.post("/check/url", form);
 };
 
-export const checkText = (text, mode = "tfidf") => {
+export const checkText = (text, mode = "tfidf", includeAcademic = false) => {
   const form = new FormData();
   form.append("text", text);
   form.append("mode", mode);
+  form.append("include_academic", includeAcademic);
   return API.post("/check/text", form);
+};
+
+export const checkAcademic = (text) => {
+  const form = new FormData();
+  form.append("text", text);
+  return API.post("/check/academic", form);
 };
 
 export const getCorpus       = ()    => API.get("/corpus/");
